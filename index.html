@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>나의 여행 지도</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <!-- 지도를 표시할 div 요소 -->
+    <div id="map"></div>
+
+    <!-- 여행 통계를 표시할 패널 -->
+    <div id="info-panel" class="card">
+        <h2>여행 통계</h2>
+        <div class="stat-container">
+            <div class="stat-item">
+                <span class="stat-label">전체 국가</span>
+                <span id="total-countries" class="stat-value">0</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">방문한 국가</span>
+                <div class="stat-value-container">
+                    <span id="visited-count" class="stat-value">0</span>
+                    <span id="visited-percentage" class="stat-value-percentage">0%</span>
+                </div>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">가고 싶은 국가</span>
+                <span id="wishlist-count" class="stat-value">0</span>
+            </div>
+        </div>
+        <button id="toggle-visited-list" class="toggle-button">방문한 국가 목록 보기</button>
+        <div id="visited-countries-container" class="hidden">
+            <h3>방문한 국가</h3>
+            <select id="continent-filter">
+                <option value="all">모든 대륙</option>
+                <option value="Africa">아프리카</option>
+                <option value="Asia">아시아</option>
+                <option value="Europe">유럽</option>
+                <option value="North America">북아메리카</option>
+                <option value="South America">남아메리카</option>
+                <option value="Oceania">오세아니아</option>
+                <option value="Antarctica">남극</option>
+            </select>
+            <ul id="visited-countries-list"></ul>
+        </div>
+    </div>
+
+    <!-- Google Maps API를 로드하는 스크립트 -->
+    <!-- YOUR_API_KEY 부분을 실제 API 키로 교체해야 합니다 -->
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAT5IhYE1fW0ZXTWQvpytmhEEqdV_W9PSw" async
+        defer></script>
+
+    <!-- 우리의 자바스크립트 파일 -->
+    <script src="script.js"></script>
+
+    <form id="loginForm">
+        <input type="email" id="email" required>
+        <input type="password" id="password" required>
+        <button type="submit">로그인</button>
+    </form>
+</body>
+
+</html>
