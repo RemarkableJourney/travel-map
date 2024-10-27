@@ -1,0 +1,23 @@
+{
+    "title": "나의 여행 지도",
+    "travelStats": "여행 통계",
+    "travelPlan": "여행 계획",
+    "totalCountries": "전체 국가",
+    "visitedCountries": "방문한 국가",
+    "wishlistCountries": "가고 싶은 국가",
+    "showVisitedList": "방문한 국가 목록 보기",
+    "allContinents": "모든 대륙",
+    "africa": "아프리카",
+    "asia": "아시아",
+    "europe": "유럽",
+    "northAmerica": "북아메리카",
+    "southAmerica": "남아메리카",
+    "oceania": "오세아니아",
+    "antarctica": "남극",
+    "selectTravelDate": "여행 날짜 선택",
+    "save": "저장",
+    "cancel": "취소",
+    "login": "로그인",
+    "email": "이메일",
+    "password": "비밀번호"
+}

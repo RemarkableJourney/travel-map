@@ -7,14 +7,22 @@
     <title>나의 여행 지도</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
 </head>
 
 <body>
-    <!-- 지도를 표시할 div 요소 -->
-    <div id="map"></div>
+    <div id="map-container">
+        <div id="map"></div>
+    </div>
+
+    <div id="controls">
+        <button id="toggle-stats" class="toggle-button">여행 통계</button>
+        <button id="toggle-plan" class="toggle-button">여행 계획</button>
+        <button id="share-button" class="toggle-button">여행 지도 공유</button>
+    </div>
 
     <!-- 여행 통계를 표시할 패널 -->
-    <div id="info-panel" class="card">
+    <div id="info-panel" class="card hidden">
         <h2>여행 통계</h2>
         <div class="stat-container">
             <div class="stat-item">
@@ -50,19 +58,52 @@
         </div>
     </div>
 
-    <!-- Google Maps API를 로드하는 스크립트 -->
-    <!-- YOUR_API_KEY 부분을 실제 API 키로 교체해야 합니다 -->
-    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAT5IhYE1fW0ZXTWQvpytmhEEqdV_W9PSw" async
-        defer></script>
+    <!-- 여행 계획 -->
+    <div id="travel-plan" class="card hidden">
+        <h2>여행 계획</h2>
+        <ul id="plan-list"></ul>
+    </div>
 
-    <!-- 우리의 자바스크립트 파일 -->
-    <script src="script.js"></script>
+    <!-- 날짜 선택 모달 추가 -->
+    <div id="date-modal" class="modal hidden">
+        <div class="modal-content">
+            <h3>여행 날짜 선택</h3>
+            <input type="month" id="travel-date" required>
+            <button id="save-date">저장</button>
+            <button id="cancel-date">취소</button>
+        </div>
+    </div>
 
     <form id="loginForm">
         <input type="email" id="email" required>
         <input type="password" id="password" required>
         <button type="submit">로그인</button>
     </form>
+
+    <!-- Google Maps API를 로드하는 스크립트 -->
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAT5IhYE1fW0ZXTWQvpytmhEEqdV_W9PSw" async
+        defer></script>
+
+    <!-- 우리의 자바스크립트 파일 -->
+    <script src="script.js"></script>
+
+    <div id="language-selector">
+        <button id="language-dropdown-btn">Language</button>
+        <div id="language-dropdown-content" class="hidden">
+            <a href="#" onclick="changeLanguage('en')">English</a>
+            <a href="#" onclick="changeLanguage('ko')">한국어</a>
+            <a href="#" onclick="changeLanguage('ja')">日本語</a>
+        </div>
+    </div>
+
+    <div id="share-modal" class="modal">
+        <div class="modal-content">
+            <h3>여행 지도 공유</h3>
+            <button id="save-screenshot">스크린샷 저장</button>
+            <button id="copy-link">링크 복사</button>
+            <button id="close-share-modal">닫기</button>
+        </div>
+    </div>
 </body>
 
 </html>

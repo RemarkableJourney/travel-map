@@ -14,12 +14,103 @@ let infoWindow;
 // 전역 변수에 추가
 let continents = {};
 
-// 지도 초기화 함수
-function initMap() {
+// 전역 변수에 추가
+let travelPlans = [];
+
+let selectedCountry = null;
+
+// 전역 변수에 추가
+let currentLanguage = 'ko';
+let translations = {};
+
+// 언어 파일 로드 함수
+async function loadLanguage(lang) {
+    try {
+        const response = await fetch(`locales/${lang}.json`);
+        translations = await response.json();
+        currentLanguage = lang;
+        // DOM이 로드된 후에 UI 업데이트를 수행합니다.
+        if (document.readyState === 'complete') {
+            updateUILanguage();
+        } else {
+            window.addEventListener('load', updateUILanguage);
+        }
+    } catch (error) {
+        console.error('Error loading language file:', error);
+    }
+}
+
+// UI 언어 업데이트 함수
+function updateUILanguage() {
+    document.title = translations.title;
+
+    const elements = {
+        'toggle-stats': translations.travelStats,
+        'toggle-plan': translations.travelPlan,
+        'toggle-visited-list': translations.showVisitedList,
+        'save-date': translations.save,
+        'cancel-date': translations.cancel
+    };
+
+    for (const [id, text] of Object.entries(elements)) {
+        const element = document.getElementById(id);
+        if (element) element.textContent = text;
+    }
+
+    const selectors = {
+        '#info-panel h2': translations.travelStats,
+        '#travel-plan h2': translations.travelPlan,
+        '.stat-label:nth-child(1)': translations.totalCountries,
+        '.stat-label:nth-child(2)': translations.visitedCountries,
+        '.stat-label:nth-child(3)': translations.wishlistCountries,
+        '#date-modal h3': translations.selectTravelDate,
+        '#loginForm button': translations.login
+    };
+
+    for (const [selector, text] of Object.entries(selectors)) {
+        const element = document.querySelector(selector);
+        if (element) element.textContent = text;
+    }
+
+    const continentFilter = document.getElementById('continent-filter');
+    if (continentFilter) {
+        const continents = [
+            translations.allContinents,
+            translations.africa,
+            translations.asia,
+            translations.europe,
+            translations.northAmerica,
+            translations.southAmerica,
+            translations.oceania,
+            translations.antarctica
+        ];
+        continents.forEach((continent, index) => {
+            if (continentFilter.options[index]) {
+                continentFilter.options[index].textContent = continent;
+            }
+        });
+    }
+
+    const emailInput = document.querySelector('#loginForm input[type="email"]');
+    if (emailInput) emailInput.placeholder = translations.email;
+
+    const passwordInput = document.querySelector('#loginForm input[type="password"]');
+    if (passwordInput) passwordInput.placeholder = translations.password;
+}
+
+// 초기화 함수 수정
+async function initMap() {
+    await loadLanguage('ko'); // 기본 언어를 한국어로 설정
     loadData(); // 초기화 시 저장된 데이터 불러오기
 
+    // Google Maps API가 로드된 후에 실행
+    if (typeof google === 'undefined') {
+        console.error('Google Maps API not loaded');
+        return;
+    }
+
     map = new google.maps.Map(document.getElementById('map'), {
-        zoom: 2,
+        zoom: 3,
         center: { lat: 0, lng: 0 },
         styles: [
             {
@@ -32,6 +123,27 @@ function initMap() {
 
     loadGeoJson();
     initUI();
+
+    // 화면 크기에 따라 지도 중심 조정
+    const mediaQuery = window.matchMedia("(max-width: 768px)");
+    if (mediaQuery.matches) {
+        map.setCenter({ lat: 30, lng: 0 }); // 모바일에서는 더 은 뷰
+        map.setZoom(1);
+    }
+
+    loadTravelPlans();
+
+    // 국가 클릭 이벤트 리스너 추가
+    map.data.addListener('click', function (event) {
+        const countryCode = event.feature.getProperty('ISO_A2');
+        toggleCountryStatus(countryCode);
+    });
+
+    // 지도 클릭 시 모든 카드 닫기
+    map.addListener('click', function () {
+        document.getElementById('travel-plan').classList.add('hidden');
+        document.getElementById('info-panel').classList.add('hidden');
+    });
 }
 
 // GeoJSON 데이터 로드 함수
@@ -42,13 +154,14 @@ function loadGeoJson() {
             map.data.addGeoJson(data);
 
             totalCountries = data.features.length;
-
+            updateTravelInfo();
+            setMapStyle(); // 여기에 추가
             data.features.forEach(feature => {
                 const countryCode = feature.properties.ISO_A2;
                 const countryName = feature.properties.ADMIN;
                 const continent = getContinent(feature.properties);
 
-                console.log(`Country: ${countryName}, Code: ${countryCode}, Continent: ${continent}`);
+                // console.log(`Country: ${countryName}, Code: ${countryCode}, Continent: ${continent}`);
 
                 if (!continents[continent]) {
                     continents[continent] = [];
@@ -110,7 +223,7 @@ function loadGeoJson() {
                 };
             });
 
-            console.log('Continents object:', continents);
+            // console.log('Continents object:', continents);
 
             setMapStyle();
             addMapListeners();
@@ -123,37 +236,33 @@ function loadGeoJson() {
 function getContinent(properties) {
     const countryCode = properties.ISO_A2;
     const continent = countryToContinent[countryCode] || 'Unknown';
-    console.log(`Country: ${properties.ADMIN}, Code: ${countryCode}, Continent: ${continent}`);
+    // console.log(`Country: ${properties.ADMIN}, Code: ${countryCode}, Continent: ${continent}`);
     return continent;
 }
 
-// 지도 스타일 설 함수
+// 지도 타일 설 함수
 function setMapStyle() {
     map.data.setStyle(function (feature) {
         const countryCode = feature.getProperty('ISO_A2');
-        let fillColor = '#F0F0F0'; // 방문하지 않은 국가의 기본 색상 (매우 밝은 회색)
-        let strokeColor = '#A0A0A0'; // 기본 테두리 색상
-        let strokeWeight = 0.5; // 기본 테두리 두께
-        let fillOpacity = 0.8; // 기본 투명도
-
         if (travelData.visited.includes(countryCode)) {
-            fillColor = '#4CAF50'; // 방문한 국가 색상 (녹색)
-            strokeColor = '#45a049'; // 방문한 국가 테두리 색상 (진한 녹색)
-            strokeWeight = 1; // 방문한 국가 테두리 두께 증가
-            fillOpacity = 0.7; // 방문한 국가 투명도 조정
+            return {
+                fillColor: 'green',
+                fillOpacity: 0.6,
+                strokeWeight: 1
+            };
         } else if (travelData.wishlist.includes(countryCode)) {
-            fillColor = '#FFC107'; // 가고 싶은 국가 색상 (노란색)
-            strokeColor = '#FFA000'; // 가고 싶은 국가 테두리 색상 (진한 노란색)
-            strokeWeight = 1; // 가고 싶은 국가 테두리 두께 약간 증가
-            fillOpacity = 0.7; // 가고 싶은 국가 투명도 조정
+            return {
+                fillColor: 'yellow',
+                fillOpacity: 0.6,
+                strokeWeight: 1
+            };
+        } else {
+            return {
+                fillColor: null,  // 클릭 전 상태는 색상을 지정하지 않음
+                fillOpacity: 0,
+                strokeWeight: 1
+            };
         }
-
-        return {
-            fillColor: fillColor,
-            fillOpacity: fillOpacity,
-            strokeColor: strokeColor,
-            strokeWeight: strokeWeight
-        };
     });
 }
 
@@ -194,7 +303,7 @@ function addMapListeners() {
             label.marker.setLabel({
                 text: label.code,
                 color: "#000000",
-                fontSize: "8px",  // 원래 크기로 돌아갑니다
+                fontSize: "8px",  // 원래 크기로 니다
                 fontWeight: "bold"
             });
         }
@@ -205,17 +314,22 @@ function addMapListeners() {
 // 국가 상태 토글 함수
 function toggleCountryStatus(countryCode) {
     if (travelData.visited.includes(countryCode)) {
+        // 방문한 국가에서 가고 싶은 국가로
         travelData.visited = travelData.visited.filter(code => code !== countryCode);
         travelData.wishlist.push(countryCode);
     } else if (travelData.wishlist.includes(countryCode)) {
+        // 가고 싶은 국가에서 클릭 전 상태로
         travelData.wishlist = travelData.wishlist.filter(code => code !== countryCode);
     } else {
+        // 클릭 전 상태에서 방문한 국가로
         travelData.visited.push(countryCode);
     }
 
     setMapStyle();
     updateTravelInfo();
-    saveData(); // 상태가 변경될 때마다 데이터 저장
+    saveData();
+
+    console.log('Country status toggled:', countryCode);
 }
 
 // 여행 정보 업데이트 함수
@@ -281,7 +395,7 @@ function showCountryName(event) {
     const countryName = event.feature.getProperty('ADMIN');
     const countryCode = event.feature.getProperty('ISO_A2');
 
-    // 마우스 커서 위치 가져오기
+    // 마우스 서 위치 가져오기
     const geometry = event.feature.getGeometry();
     let center;
 
@@ -298,7 +412,6 @@ function showCountryName(event) {
     infoWindow.setPosition(center);
     infoWindow.open(map);
 }
-
 // UI 초기화 함수
 function initUI() {
     const toggleButton = document.getElementById('toggle-visited-list');
@@ -310,14 +423,22 @@ function initUI() {
             toggleButton.textContent = '방문한 국가 목록 숨기기';
         } else {
             visitedCountriesContainer.classList.add('hidden');
-            toggleButton.textContent = '방문한 국가 목록 보기';
+            toggleButton.textContent = '방문한 국가 목록 기';
         }
     });
 
     const continentFilter = document.getElementById('continent-filter');
     continentFilter.addEventListener('change', updateTravelInfo);
-}
 
+    const shareButton = document.getElementById('share-button');
+    if (shareButton) {
+        shareButton.addEventListener('click', shareMap);
+    }
+
+    initShareFeatures();
+
+    console.log('UI initialized');
+}
 // Google Maps API 로드 완료 후 initMap 함수 호출
 window.initMap = initMap;
 
@@ -393,10 +514,338 @@ async function login(email, password) {
         console.error('Login error:', error);
     }
 }
+document.addEventListener('DOMContentLoaded', function () {
+    const loginForm = document.getElementById('loginForm');
+    if (loginForm) {
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            await login(email, password);
+        });
+    }
 
-document.getElementById('loginForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const email = document.getElementById('email').value;
-    const password = document.getElementById('password').value;
-    await login(email, password);
+    const planForm = document.getElementById('plan-form');
+    if (planForm) {
+        planForm.addEventListener('submit', function (e) {
+            e.preventDefault();
+            const countryCode = document.getElementById('plan-country').value.toUpperCase();
+            const date = document.getElementById('plan-date').value;
+            addTravelPlan(countryCode, date);
+            this.reset();
+        });
+    }
+});
+
+// 여행 계획 목록 업데이트 함수
+function updateTravelPlanList() {
+    const planList = document.getElementById('plan-list');
+    planList.innerHTML = '';
+    travelData.wishlist.forEach(countryCode => {
+        const countryName = countryLabels[countryCode] ? countryLabels[countryCode].name : countryCode;
+        const li = document.createElement('li');
+        li.innerHTML = `
+            <span>${countryName} (${countryCode})</span>
+            <button onclick="removeFromWishlist('${countryCode}')">삭제</button>
+        `;
+        planList.appendChild(li);
+    });
+}
+
+// 위시리스트에서 국가 제거 함수
+function removeFromWishlist(countryCode) {
+    travelData.wishlist = travelData.wishlist.filter(code => code !== countryCode);
+    setMapStyle();
+    updateTravelInfo();
+    updateTravelPlanList();
+    saveData();
+}
+
+// 여행 계획 저장 함수
+function saveTravelPlans() {
+    localStorage.setItem('travelPlans', JSON.stringify(travelPlans));
+}
+
+// 여행 계획 불러오기 함수
+function loadTravelPlans() {
+    const savedPlans = localStorage.getItem('travelPlans');
+    if (savedPlans) {
+        travelPlans = JSON.parse(savedPlans);
+        updateTravelPlanList();
+
+        // 저장된 계획에 따라 지도 스타일 적용
+        travelPlans.forEach(plan => {
+            const feature = map.data.getFeatureById(plan.countryCode);
+            if (feature) {
+                map.data.overrideStyle(feature, { fillColor: '#1a73e8', strokeWeight: 2 });
+            }
+        });
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+    const toggleStatsButton = document.getElementById('toggle-stats');
+    const togglePlanButton = document.getElementById('toggle-plan');
+    const infoPanel = document.getElementById('info-panel');
+    const travelPlan = document.getElementById('travel-plan');
+
+    toggleStatsButton.addEventListener('click', function () {
+        infoPanel.classList.toggle('hidden');
+        if (!infoPanel.classList.contains('hidden')) {
+            travelPlan.classList.add('hidden');
+        }
+    });
+
+    togglePlanButton.addEventListener('click', function () {
+        travelPlan.classList.toggle('hidden');
+        if (!travelPlan.classList.contains('hidden')) {
+            infoPanel.classList.add('hidden');
+            updateTravelPlanList(); // 여행 계획 리스트 업데이트
+        }
+    });
+
+    // 지도 클릭 시 모든 카드 닫기
+    if (map) {
+        map.addListener('click', function () {
+            infoPanel.classList.add('hidden');
+            travelPlan.classList.add('hidden');
+        });
+    } else {
+        console.warn('Map is not initialized yet. Event listener for closing cards on map click will not be added.');
+    }
+});
+
+// 언어 변경 함수
+function changeLanguage(lang) {
+    loadLanguage(lang);
+    document.getElementById('language-dropdown-content').classList.remove('show');
+    // 선택된 언어를 버튼 텍스트로 설정
+    const languageNames = {
+        'en': 'English',
+        'ko': '한국어',
+        'ja': '日本語'
+    };
+    document.getElementById('language-dropdown-btn').textContent = languageNames[lang];
+}
+
+function shareMap() {
+    // 현재 사용자의 여행 데이터를 문자열로 변환
+    const shareData = JSON.stringify(travelData);
+
+    // Base64로 인코딩 (URL에 안전하게 전달하기 위해)
+    const encodedData = btoa(shareData);
+
+    // 현재 페이지의 URL에 데이터를 쿼리 파라미터로 추가
+    const shareUrl = `${window.location.origin}${window.location.pathname}?data=${encodedData}`;
+
+    // 임시 입력 요소를 만들어 URL을 복사
+    const tempInput = document.createElement('input');
+    tempInput.value = shareUrl;
+    document.body.appendChild(tempInput);
+    tempInput.select();
+    document.execCommand('copy');
+    document.body.removeChild(tempInput);
+
+    alert('공유 링크가 클립보드에 복사되었습니다!');
+}
+
+function initializeApp() {
+    loadData(); // 저장된 데이터 불러오기
+    loadSharedData(); // 이 줄을 추가
+    loadLanguage(currentLanguage).then(() => {
+        if (typeof google !== 'undefined') {
+            initMap();
+            initUI(); // 이 줄이 있는지 확인하세요
+        } else {
+            console.error('Google Maps API not loaded');
+        }
+    });
+}
+
+function loadSharedData() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const sharedData = urlParams.get('data');
+
+    if (sharedData) {
+        try {
+            const decodedData = atob(sharedData);
+            const parsedData = JSON.parse(decodedData);
+            travelData = parsedData;
+            updateTravelInfo();
+            setMapStyle();
+        } catch (error) {
+            console.error('Error loading shared data:', error);
+        }
+    }
+}
+
+// html2canvas 라이브러리 로드
+function loadHtml2Canvas() {
+    return new Promise((resolve, reject) => {
+        if (window.html2canvas) {
+            resolve(window.html2canvas);
+        } else {
+            const script = document.createElement('script');
+            script.src = 'https://html2canvas.hertzen.com/dist/html2canvas.min.js';
+            script.onload = () => resolve(window.html2canvas);
+            script.onerror = reject;
+            document.head.appendChild(script);
+        }
+    });
+}
+
+// 스크린샷 저장 함수 수정
+async function saveScreenshot() {
+    const html2canvas = await loadHtml2Canvas();
+
+    // 지도 컨테이너와 통계 카드를 포함하는 새로운 div 생성
+    const screenshotContainer = document.createElement('div');
+    screenshotContainer.style.position = 'relative';
+    screenshotContainer.style.width = '1200px';  // 너비를 2배로 증가
+    screenshotContainer.style.height = '1200px'; // 높이를 2배로 증가
+
+    // 지도의 복사본 생성
+    const mapClone = document.getElementById('map').cloneNode(true);
+    mapClone.style.width = '100%';
+    mapClone.style.height = '100%';
+    screenshotContainer.appendChild(mapClone);
+
+    // 통계 카드의 복사본 생성
+    const infoPanel = document.getElementById('info-panel');
+    if (infoPanel) {
+        const infoPanelClone = infoPanel.cloneNode(true);
+        infoPanelClone.classList.remove('hidden');
+        infoPanelClone.style.position = 'absolute';
+        infoPanelClone.style.top = '20px';
+        infoPanelClone.style.right = '20px';
+        infoPanelClone.style.zIndex = '1000';
+        infoPanelClone.style.transform = 'scale(1.0)'; // 통계 카드 크기를 1.5배로 증가
+        infoPanelClone.style.transformOrigin = 'top right';
+        screenshotContainer.appendChild(infoPanelClone);
+    }
+
+    // 임시로 body에 추가
+    document.body.appendChild(screenshotContainer);
+
+    // 지도 중심 및 줌 레벨 조정
+    const mapInstance = new google.maps.Map(mapClone, {
+        center: { lat: 20, lng: 0 }, // 적절한 중심점 설정
+        zoom: 2, // 줌 레벨을 낮춰 더 넓은 영역 표시
+        styles: [
+            {
+                featureType: 'all',
+                elementType: 'labels',
+                stylers: [{ visibility: 'off' }]
+            }
+        ]
+    });
+
+    // 기존 지도의 데이터 레이어를 새 지도에 복사
+    mapInstance.data.setStyle(map.data.getStyle());
+    map.data.forEach((feature) => {
+        mapInstance.data.add(feature);
+    });
+
+    // 스크린샷 생성 (지도가 렌더링될 시간을 주기 위해 약간의 지연 추가)
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    const canvas = await html2canvas(screenshotContainer, {
+        useCORS: true,
+        logging: false,
+        scale: 1,
+        width: 1200,
+        height: 1200
+    });
+
+    // 임시 요소 제거
+    document.body.removeChild(screenshotContainer);
+
+    // 스크린샷 다운로드
+    const link = document.createElement('a');
+    link.download = 'travel_map_screenshot.png';
+    link.href = canvas.toDataURL();
+    link.click();
+}
+// 링크 복사 함수
+function copyLink() {
+    const shareData = JSON.stringify(travelData);
+    const encodedData = btoa(shareData);
+    const shareUrl = `${window.location.origin}${window.location.pathname}?data=${encodedData}`;
+
+    navigator.clipboard.writeText(shareUrl).then(() => {
+        alert('링크가 클립보드에 복사되었습니다!');
+    }).catch(err => {
+        console.error('링크 복사 실패:', err);
+    });
+}
+
+// 공유 모달 표시 함수
+function showShareModal() {
+    console.log('Showing share modal');
+    const shareModal = document.getElementById('share-modal');
+    if (shareModal) {
+        shareModal.style.display = 'block';
+    } else {
+        console.error('Share modal not found');
+    }
+}
+
+// 공유 모달 닫기 함수
+function closeShareModal() {
+    const shareModal = document.getElementById('share-modal');
+    if (shareModal) {
+        shareModal.style.display = 'none';
+    }
+}
+
+// 이벤트 리스너 추가 함수
+function initShareFeatures() {
+    const shareButton = document.getElementById('share-button');
+    if (shareButton) {
+        shareButton.removeEventListener('click', shareMap); // 기존 이벤트 리스너 제거
+        shareButton.addEventListener('click', showShareModal);
+    } else {
+        console.error('Share button not found');
+    }
+
+    const saveScreenshotButton = document.getElementById('save-screenshot');
+    if (saveScreenshotButton) {
+        saveScreenshotButton.addEventListener('click', saveScreenshot);
+    }
+
+    const copyLinkButton = document.getElementById('copy-link');
+    if (copyLinkButton) {
+        copyLinkButton.addEventListener('click', copyLink);
+    }
+
+    const closeModalButton = document.getElementById('close-share-modal');
+    if (closeModalButton) {
+        closeModalButton.addEventListener('click', closeShareModal);
+    }
+}
+
+// DOM이 로드된 후 초기화 함수 실행
+document.addEventListener('DOMContentLoaded', initializeApp);
+
+// 기존 코드에 추가
+document.addEventListener('DOMContentLoaded', function () {
+    const dropdownBtn = document.getElementById('language-dropdown-btn');
+    const dropdownContent = document.getElementById('language-dropdown-content');
+
+    dropdownBtn.addEventListener('click', function () {
+        dropdownContent.classList.toggle('show');
+    });
+
+    // 드롭다운 외부를 클릭하면 드롭다운이 닫힘
+    window.addEventListener('click', function (event) {
+        if (!event.target.matches('#language-dropdown-btn')) {
+            if (dropdownContent.classList.contains('show')) {
+                dropdownContent.classList.remove('show');
+            }
+        }
+    });
+});
+
+// 초기 언어 설정
+document.addEventListener('DOMContentLoaded', function () {
+    changeLanguage(currentLanguage);
 });

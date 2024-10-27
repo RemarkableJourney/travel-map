@@ -1,0 +1,23 @@
+{
+    "title": "私の旅行マップ",
+    "travelStats": "旅行統計",
+    "travelPlan": "旅行計画",
+    "totalCountries": "全ての国",
+    "visitedCountries": "訪問した国",
+    "wishlistCountries": "行きたい国",
+    "showVisitedList": "訪問した国のリストを表示",
+    "allContinents": "すべての大陸",
+    "africa": "アフリカ",
+    "asia": "アジア",
+    "europe": "ヨーロッパ",
+    "northAmerica": "北アメリカ",
+    "southAmerica": "南アメリカ",
+    "oceania": "オセアニア",
+    "antarctica": "南極",
+    "selectTravelDate": "旅行日を選択",
+    "save": "保存",
+    "cancel": "キャンセル",
+    "login": "ログイン",
+    "email": "メールアドレス",
+    "password": "パスワード"
+}

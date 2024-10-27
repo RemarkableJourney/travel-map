@@ -1,0 +1,23 @@
+{
+    "title": "My Travel Map",
+    "travelStats": "Travel Statistics",
+    "travelPlan": "Travel Plan",
+    "totalCountries": "Total Countries",
+    "visitedCountries": "Visited Countries",
+    "wishlistCountries": "Wishlist Countries",
+    "showVisitedList": "Show Visited Countries List",
+    "allContinents": "All Continents",
+    "africa": "Africa",
+    "asia": "Asia",
+    "europe": "Europe",
+    "northAmerica": "North America",
+    "southAmerica": "South America",
+    "oceania": "Oceania",
+    "antarctica": "Antarctica",
+    "selectTravelDate": "Select Travel Date",
+    "save": "Save",
+    "cancel": "Cancel",
+    "login": "Login",
+    "email": "Email",
+    "password": "Password"
+}
