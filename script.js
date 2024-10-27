@@ -124,7 +124,7 @@ async function initMap() {
     loadGeoJson();
     initUI();
 
-    // 화면 크기에 따라 지도 중심 조정
+    // 화면 크기에 따라 지도 심 조정
     const mediaQuery = window.matchMedia("(max-width: 768px)");
     if (mediaQuery.matches) {
         map.setCenter({ lat: 30, lng: 0 }); // 모바일에서는 더 은 뷰
@@ -144,6 +144,14 @@ async function initMap() {
         document.getElementById('travel-plan').classList.add('hidden');
         document.getElementById('info-panel').classList.add('hidden');
     });
+
+    // 사용자의 여행 데이터 가져오기
+    const travelData = await fetchTravelData();
+    if (travelData && travelData.locations) {
+        travelData.locations.forEach(location => {
+            addMarker(location.lat, location.lng, location.name);
+        });
+    }
 }
 
 // GeoJSON 데이터 로드 함수
@@ -215,7 +223,7 @@ function loadGeoJson() {
                     }
                 });
 
-                // 레이블을 countryLabels 객체에 저장
+                //  countryLabels 객체에 저장
                 countryLabels[countryCode] = {
                     marker: label,
                     code: countryCode,
@@ -295,7 +303,7 @@ function addMapListeners() {
         });
     });
 
-    // 마우스 아웃 효과 추가
+    // 마우스 아웃 효 추가
     map.data.addListener('mouseout', function (event) {
         const countryCode = event.feature.getProperty('ISO_A2');
         const label = countryLabels[countryCode];
@@ -491,48 +499,95 @@ const countryToContinent = {
     'AQ': 'Antarctica'
 };
 
+// API 기본 URL
+const API_URL = 'http://localhost:5001/api';
+
+// 인증 관련 함수
+async function register(username, email, password) {
+    try {
+        const response = await fetch(`${API_URL}/auth/register`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ username, email, password }),
+        });
+        const data = await response.json();
+        if (response.ok) {
+            localStorage.setItem('token', data.token);
+            return { success: true };
+        } else {
+            return { success: false, message: data.msg };
+        }
+    } catch (error) {
+        console.error('Registration error:', error);
+        return { success: false, message: '서버 오류가 발생했습니다.' };
+    }
+}
+
 async function login(email, password) {
     try {
-        const response = await fetch('http://localhost:5000/api/auth/login', {
+        const response = await fetch(`${API_URL}/auth/login`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({ email, password }),
         });
-
         const data = await response.json();
-
         if (response.ok) {
             localStorage.setItem('token', data.token);
-            // 로그인 성공 후 처리 (예: UI 업데이트)
+            return { success: true };
         } else {
-            // 에러 처리
-            console.error(data.msg);
+            return { success: false, message: data.msg };
         }
     } catch (error) {
         console.error('Login error:', error);
+        return { success: false, message: '서버 오류가 발생했습니다.' };
     }
 }
+
+function logout() {
+    localStorage.removeItem('token');
+    // 로그아웃 후 UI 업데이트 로직 추가
+}
+
+// 폼 제출 이벤트 리스너
 document.addEventListener('DOMContentLoaded', function () {
+    const signupForm = document.getElementById('signupForm');
     const loginForm = document.getElementById('loginForm');
-    if (loginForm) {
-        loginForm.addEventListener('submit', async (e) => {
+
+    if (signupForm) {
+        signupForm.addEventListener('submit', async function (e) {
             e.preventDefault();
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
-            await login(email, password);
+            const username = document.getElementById('signup-username').value;
+            const email = document.getElementById('signup-email').value;
+            const password = document.getElementById('signup-password').value;
+
+            const result = await register(username, email, password);
+            if (result.success) {
+                alert('회원가입이 완료되었습니다.');
+                // 회원가입 성공 후 처리 (예: 로그인 폼으로 전환)
+            } else {
+                alert(`회원가입 실패: ${result.message}`);
+            }
         });
     }
 
-    const planForm = document.getElementById('plan-form');
-    if (planForm) {
-        planForm.addEventListener('submit', function (e) {
+    if (loginForm) {
+        loginForm.addEventListener('submit', async function (e) {
             e.preventDefault();
-            const countryCode = document.getElementById('plan-country').value.toUpperCase();
-            const date = document.getElementById('plan-date').value;
-            addTravelPlan(countryCode, date);
-            this.reset();
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+
+            const result = await login(email, password);
+            if (result.success) {
+                alert('로그인 성공!');
+                // 로그인 성공 후 처리 (예: 페이지 새로고침, 사용자 정보 표시 등)
+                location.reload();
+            } else {
+                alert(`로그인 실패: ${result.message}`);
+            }
         });
     }
 });
@@ -776,6 +831,7 @@ function copyLink() {
     }).catch(err => {
         console.error('링크 복사 실패:', err);
     });
+    console.log('Copy link function called');
 }
 
 // 공유 모달 표시 함수
@@ -800,26 +856,50 @@ function closeShareModal() {
 // 이벤트 리스너 추가 함수
 function initShareFeatures() {
     const shareButton = document.getElementById('share-button');
-    if (shareButton) {
-        shareButton.removeEventListener('click', shareMap); // 기존 이벤트 리스너 제거
-        shareButton.addEventListener('click', showShareModal);
+    const shareModal = document.getElementById('share-modal');
+
+    if (shareButton && shareModal) {
+        // 모든 기존 이벤트 리스너 제거
+        shareButton.replaceWith(shareButton.cloneNode(true));
+        const newShareButton = document.getElementById('share-button');
+
+        // 새로운 이벤트 리스너 추가
+        newShareButton.addEventListener('click', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('Share button clicked'); // 디버깅용 로그
+            shareModal.classList.remove('hidden');
+        });
+
+        const closeShareModalButton = document.getElementById('close-share-modal');
+        if (closeShareModalButton) {
+            closeShareModalButton.addEventListener('click', function () {
+                shareModal.classList.add('hidden');
+            });
+        }
+
+        const saveScreenshotButton = document.getElementById('save-screenshot');
+        if (saveScreenshotButton) {
+            saveScreenshotButton.addEventListener('click', saveScreenshot);
+        }
+
+        const copyLinkButton = document.getElementById('copy-link');
+        if (copyLinkButton) {
+            copyLinkButton.addEventListener('click', function () {
+                console.log('Copy link button clicked');
+                // 여기에 실제 링크 복사 로직 구현
+                // 예: navigator.clipboard.writeText(window.location.href);
+            });
+        }
+
+        // 모달 외부 클릭 시 닫기
+        window.addEventListener('click', function (event) {
+            if (event.target == shareModal) {
+                shareModal.classList.add('hidden');
+            }
+        });
     } else {
-        console.error('Share button not found');
-    }
-
-    const saveScreenshotButton = document.getElementById('save-screenshot');
-    if (saveScreenshotButton) {
-        saveScreenshotButton.addEventListener('click', saveScreenshot);
-    }
-
-    const copyLinkButton = document.getElementById('copy-link');
-    if (copyLinkButton) {
-        copyLinkButton.addEventListener('click', copyLink);
-    }
-
-    const closeModalButton = document.getElementById('close-share-modal');
-    if (closeModalButton) {
-        closeModalButton.addEventListener('click', closeShareModal);
+        console.error('Share button or modal not found');
     }
 }
 
@@ -849,3 +929,139 @@ document.addEventListener('DOMContentLoaded', function () {
 document.addEventListener('DOMContentLoaded', function () {
     changeLanguage(currentLanguage);
 });
+
+document.addEventListener('DOMContentLoaded', function () {
+    console.log('DOM fully loaded');
+    const authModal = document.getElementById('auth-modal');
+    const showSignupButton = document.getElementById('show-signup');
+    const showLoginLink = document.getElementById('show-login');
+    const showSignupLink = document.getElementById('show-signup-link');
+    const signupForm = document.getElementById('signup-form');
+    const loginForm = document.getElementById('login-form');
+    const closeButton = document.querySelector('.close-button');
+
+    console.log('showSignupButton:', showSignupButton);
+
+    showSignupButton.addEventListener('click', function () {
+        console.log('Signup button clicked');
+        authModal.classList.remove('hidden');
+        signupForm.classList.remove('hidden');
+        loginForm.classList.add('hidden');
+        console.log('authModal classes after click:', authModal.classList);
+    });
+
+    showLoginLink.addEventListener('click', function (e) {
+        e.preventDefault();
+        signupForm.classList.add('hidden');
+        loginForm.classList.remove('hidden');
+    });
+
+    showSignupLink.addEventListener('click', function (e) {
+        e.preventDefault();
+        signupForm.classList.remove('hidden');
+        loginForm.classList.add('hidden');
+    });
+
+    closeButton.addEventListener('click', function () {
+        authModal.classList.add('hidden');
+    });
+    // ... 나머지 코드 ...
+});
+
+document.addEventListener('DOMContentLoaded', function () {
+    // ... 기존 코드 ...
+
+    const loginForm = document.getElementById('loginForm');
+    loginForm.addEventListener('submit', async function (e) {
+        e.preventDefault();
+
+        const email = document.getElementById('login-email').value;
+        const password = document.getElementById('login-password').value;
+
+        try {
+            const response = await fetch('/api/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ email, password }),
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                alert('로그인 성공!');
+                // 로그인 성공 후 처리 (예: 페이지 새로고침, 사용자 정보 표시 등)
+                location.reload();
+            } else {
+                alert(`로그인 실패: ${data.message}`);
+            }
+        } catch (error) {
+            console.error('로그인 중 오류 발생:', error);
+            alert('로그인 중 오류가 발생했습니다. 다시 시도해주세요.');
+        }
+    });
+});
+
+// 여행 데이터 가져오기
+async function fetchTravelData() {
+    const token = localStorage.getItem('token');
+    if (!token) return null;
+
+    try {
+        const response = await fetch(`${API_URL}/travel`, {
+            headers: {
+                'x-auth-token': token
+            }
+        });
+        if (response.ok) {
+            return await response.json();
+        } else {
+            console.error('여행 데이터 가져오기 실패');
+            return null;
+        }
+    } catch (error) {
+        console.error('여행 데이터 가져오기 오류:', error);
+        return null;
+    }
+}
+
+// 여행 데이터 저장하기
+async function saveTravelData(locations) {
+    const token = localStorage.getItem('token');
+    if (!token) return false;
+
+    try {
+        const response = await fetch(`${API_URL}/travel`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-auth-token': token
+            },
+            body: JSON.stringify({ locations })
+        });
+        if (response.ok) {
+            console.log('여행 데이터 저장 성공');
+            return true;
+        } else {
+            console.error('여행 데이터 저장 실패');
+            return false;
+        }
+    } catch (error) {
+        console.error('여행 데이터 저장 오류:', error);
+        return false;
+    }
+}
+
+// 마커 추가 함수 수정
+function addMarker(lat, lng, name) {
+    // ... 기존 마커 추가 코드 ...
+
+    // 마커 추가 후 여행 데이터 저장
+    const locations = markers.map(marker => ({
+        name: marker.getTitle(),
+        lat: marker.getPosition().lat(),
+        lng: marker.getPosition().lng()
+    }));
+    saveTravelData(locations);
+}

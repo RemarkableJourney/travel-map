@@ -145,7 +145,7 @@ h3 {
     color: #1a73e8;
 }
 
-/* 기존 CSS 코드 아에 추가 */
+/* 기존 CSS 코드 아 추가 */
 
 @media screen and (max-width: 768px) {
     #map {
@@ -291,6 +291,14 @@ h3 {
     background-color: rgba(0, 0, 0, 0.4);
 }
 
+.modal:not(.hidden) {
+    display: block;
+}
+
+.hidden {
+    display: none !important;
+}
+
 .modal-content {
     background-color: #fefefe;
     margin: 15% auto;
@@ -319,8 +327,42 @@ h3 {
 #language-selector {
     position: absolute;
     top: 10px;
-    right: 50px;
-    z-index: 1000;
+    right: 80px;
+    /* 회원가입 버튼을 위한 공간 확보 */
+    /* z-index: 1000; */
+}
+
+#show-signup {
+    position: absolute;
+    top: 10px;
+    right: 150px;
+    /* z-index: 1000; */
+    background-color: #1a73e8;
+    color: white;
+    border: none;
+    /* padding: 10px 15px; */
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.3s;
+}
+
+#show-signup:hover {
+    background-color: #155db1;
+}
+
+/* 모바일 화면에서의 스타일 */
+@media screen and (max-width: 768px) {
+    #language-selector {
+        top: 10px;
+        right: 10px;
+    }
+
+    #show-signup {
+        top: 60px;
+        /* 언어 선택기 아래로 이동 */
+        right: 10px;
+    }
 }
 
 #language-dropdown-btn {
@@ -373,4 +415,151 @@ h3 {
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
     padding: 20px;
     max-width: 300px;
+}
+
+.auth-form {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+}
+
+.auth-form h2 {
+    margin-top: 0;
+    color: #1a73e8;
+}
+
+.auth-form input {
+    display: block;
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.auth-form button {
+    width: 100%;
+    padding: 10px;
+    background-color: #1a73e8;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.auth-form button:hover {
+    background-color: #155db1;
+}
+
+.hidden {
+    display: none;
+}
+
+#top-right-controls {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    z-index: 1000;
+}
+
+#language-selector {
+    position: relative;
+}
+
+#show-signup,
+#language-dropdown-btn {
+    background-color: #1a73e8;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.3s;
+    display: inline-block;
+    text-align: center;
+}
+
+#show-signup:hover,
+#language-dropdown-btn:hover {
+    background-color: #155db1;
+}
+
+#language-dropdown-content {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    background-color: #f9f9f9;
+    min-width: 120px;
+    box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);
+    z-index: 1;
+}
+
+#language-dropdown-content a {
+    color: black;
+    padding: 12px 16px;
+    text-decoration: none;
+    display: block;
+}
+
+#language-dropdown-content a:hover {
+    background-color: #f1f1f1;
+}
+
+/* 모바일 화면에서의 스타일 */
+@media screen and (max-width: 768px) {
+    #top-right-controls {
+        flex-direction: column;
+        align-items: flex-end;
+    }
+
+    #show-signup,
+    #language-selector {
+        margin-bottom: 10px;
+    }
+}
+
+#show-signup {
+    writing-mode: horizontal-tb;
+    text-orientation: mixed;
+    width: auto;
+    height: auto;
+    white-space: nowrap;
+}
+
+.hidden {
+    display: none;
+}
+
+.modal {
+    display: none;
+    /* 기타 모달 스타일 */
+}
+
+.modal:not(.hidden) {
+    display: block;
+}
+
+.close-button {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.close-button:hover,
+.close-button:focus {
+    color: #000;
+    text-decoration: none;
+    cursor: pointer;
 }

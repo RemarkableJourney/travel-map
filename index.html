@@ -74,11 +74,48 @@
         </div>
     </div>
 
-    <form id="loginForm">
-        <input type="email" id="email" required>
-        <input type="password" id="password" required>
-        <button type="submit">로그인</button>
-    </form>
+    <div id="auth-modal" class="modal hidden">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <div id="signup-form">
+                <h2>회원가입</h2>
+                <form id="signupForm">
+                    <input type="text" id="signup-username" placeholder="사용자 이름" required>
+                    <input type="email" id="signup-email" placeholder="이메일" required>
+                    <input type="password" id="signup-password" placeholder="비밀번호" required>
+                    <button type="submit">가입하기</button>
+                </form>
+                <p>이미 계정이 있으신가요? <a href="#" id="show-login">로그인</a></p>
+            </div>
+            <div id="login-form" class="auth-form hidden">
+                <h2>로그인</h2>
+                <form id="loginForm">
+                    <input type="email" id="login-email" placeholder="이메일" required>
+                    <input type="password" id="login-password" placeholder="비밀번호" required>
+                    <button type="submit">로그인</button>
+                </form>
+                <p>계정이 없으신가요? <a href="#" id="show-signup-link">회원가입</a></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 네비게이션 바나 헤더 부분에 추가 -->
+    <div id="auth-container">
+        <button id="auth-button">로그인</button>
+        <div id="user-info" style="display: none;">
+            <span id="username"></span>
+        </div>
+    </div>
+
+    <!-- 로그인 모달 -->
+    <div id="login-modal" class="modal hidden">
+        <!-- 로그인 폼 내용 -->
+    </div>
+
+    <!-- 회원가입 모달 -->
+    <div id="signup-modal" class="modal hidden">
+        <!-- 회원가입 폼 내용 -->
+    </div>
 
     <!-- Google Maps API를 로드하는 스크립트 -->
     <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAT5IhYE1fW0ZXTWQvpytmhEEqdV_W9PSw" async
@@ -87,22 +124,36 @@
     <!-- 우리의 자바스크립트 파일 -->
     <script src="script.js"></script>
 
-    <div id="language-selector">
-        <button id="language-dropdown-btn">Language</button>
-        <div id="language-dropdown-content" class="hidden">
-            <a href="#" onclick="changeLanguage('en')">English</a>
-            <a href="#" onclick="changeLanguage('ko')">한국어</a>
-            <a href="#" onclick="changeLanguage('ja')">日本語</a>
+    <div id="top-right-controls">
+        <button id="show-signup" class="toggle-button">회원가입</button>
+        <div id="language-selector">
+            <button id="language-dropdown-btn">Language</button>
+            <div id="language-dropdown-content" class="hidden">
+                <a href="#" onclick="changeLanguage('en')">English</a>
+                <a href="#" onclick="changeLanguage('ko')">한국어</a>
+                <a href="#" onclick="changeLanguage('ja')">日本語</a>
+            </div>
         </div>
     </div>
 
-    <div id="share-modal" class="modal">
+    <div id="share-modal" class="modal hidden">
         <div class="modal-content">
             <h3>여행 지도 공유</h3>
             <button id="save-screenshot">스크린샷 저장</button>
             <button id="copy-link">링크 복사</button>
             <button id="close-share-modal">닫기</button>
         </div>
+    </div>
+
+    <!-- 기존 코드 아래에 추가 -->
+    <div id="signup-form" class="auth-form hidden">
+        <h2>회원가입</h2>
+        <form id="signupForm">
+            <input type="text" id="signup-username" placeholder="사용자 이름" required>
+            <input type="email" id="signup-email" placeholder="이메일" required>
+            <input type="password" id="signup-password" placeholder="비밀번호" required>
+            <button type="submit">가입하기</button>
+        </form>
     </div>
 </body>
 
